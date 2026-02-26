@@ -83,8 +83,8 @@ def enforce_schema(df: pd.DataFrame) -> pd.DataFrame:
 
 #----------------Transformation functions------------------ Change to apply to mine
 
-def add_weight(df: pd.DataFrame) -> pd.DataFrame:
-    df["weight_kg"] = (df["weight"] * 0.1).round(2)
+def avg_score(df: pd.DataFrame) -> pd.DataFrame:
+    df["users_rated"] = (df["users_rated"] * 0.1).round(2)
     return df
 
 def dedupe_id(df: pd.DataFrame) -> pd.DataFrame:
@@ -115,57 +115,79 @@ def plot_rank_distribution(df: pd.DataFrame, outpath: Path) -> None:
 @dataclass
 class lineageEvent:
     step: str
-    name: str
+    description: str
     timestamp: str
     input_rows: int
     output_rows: int
     columns_added: List[str]
     columns_removed: List[str]
-    details: Dict[str, object]
 
-#extract
+
 def pipeline(source: Path, outpath: Path) -> Dict[str, object]:
     lineage: list[lineageEvent] = []
-    df = load(source)
+
+    # Extract
+    raw = load(source)
     lineage.append(lineageEvent(
-        step="load", description="load csv as string",
-        timestamp=now_Iso(), 
-        input_rows=0, 
+        step="extract",
+        description="Loading CSV as string",
+        timestamp=now_Iso(),
+        input_rows=0,
+        output_rows=len(raw),
         columns_added=[],
-        columns_removed=[],
-        output_rows=df.
-        shape[0],
-    ))   
-    #Schema check
+        columns_removed=[]
+    )) 
+     # Schema checks
     clean = enforce_schema(raw)
     lineage.append(lineageEvent(
-        step="load", description="load csv as string",
-        timestamp=now_Iso(), 
-        input_rows=0, 
+        step="validate",
+        description="Enforce schema",
+        timestamp=now_Iso(),
+        input_rows=len(raw),
+        output_rows=len(clean),
         columns_added=[],
-        columns_removed=[],
-        output_rows=len(raw).
-        shape[0],
-    ))   
-    
-    df = enforce_schema(df)
-    df = add_weight(df)
-    df = dedupe_id(df)
-    plot_rank_distribution(df, outpath)
+        columns_removed=[]
+    ))
 
-    #validation
-    chart_path = OUTDIR / "rank_distribution.png"
-    plot_rank_distribution(df, chart_path)
+    # Dedupe
+    deduped = dedupe_id(clean)
     lineage.append(lineageEvent(
-        step="load", 
-        description=f"Histogram of rank distribution to {chart_path.name}",
-        timestamp=now_Iso(), 
-        input_rows=0, 
-        columns_added=len(raw),
-        columns_removed=[],
-        output_rows=df.
-        shape[0],
-    ))   
+        step="dedupe",
+        description="Dropped duplicates by name",
+        timestamp=now_Iso(),
+        input_rows=len(clean),
+        output_rows=len(deduped),
+        columns_added=[],
+        columns_removed=[]
+    ))
+
+    # Derived Column
+    score = avg_score(deduped)
+    lineage.append(lineageEvent(
+        step="derive avg_score",
+        description="Added avg_score (avg_score).round(2)",
+        timestamp=now_Iso(),
+        input_rows=len(deduped),
+        output_rows=len(score),
+        columns_added=["avg_score"],
+        columns_removed=[]
+    ))
+
+    # Analytics
+    heaviest = heaviest_pokemon(score)
+
+    #visualization
+    chart_path = OUTDIR / "rank_distribution.png"
+    plot_rank_distribution(raw, chart_path)
+    lineage.append(lineageEvent(
+        step="viz",
+        description="Histogram of avg_score saved to {chart_path.name}",
+        timestamp=now_Iso(),
+        input_rows=len(score),
+        output_rows=len(score),
+        columns_added=[],
+        columns_removed=[]
+    ))
     return {
         #"df": with_rank,
         "lineage": lineage,
@@ -183,4 +205,5 @@ def main():
 
 if __name__ == "__main__":
 	main()
+
 
