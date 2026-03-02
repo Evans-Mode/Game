@@ -1,209 +1,112 @@
-#!/python3
+#!/usr/bin/env python3
 
-import logging
+import argparse
+import csv
+import os
+import sys
+from typing import List
 
-logger = logging.basicConfig(level=logging.WARN)
-logger = logging.getLogger("logging")
 
-def load(source):
-    """This loads the file"""
-    games = {}
-    with open(source, "r", encoding = "utf-8") as file:
-        counter = 0
-        for line in file.readlines():
-            row = line.split()
-            games.update({row[0]: row})
-            counter += 1
-    logger.Info("rows read: %d" + len(games))
-    return games
+SELECT_COLUMNS = [
+    "AppID",
+    "Release date",
+    "Estimated owners",
+    "Price",
+    "User score",
+    "Score rank",
+    "Genres",
+]
 
-def find(gid, name: dict):
-    game = ""
-    logger.info("Looking for game ID: %s", gid)
-    game = name.get(gid)
-    return game
+
+def split_csv(
+    input_path: str = "data/games.csv",
+    output_prefix: str = "games_chunk",
+    chunk_size: int = 5000,
+    selected_columns: List[str] = SELECT_COLUMNS,
+) -> None:
+    """Read ``input_path`` CSV, filter ``selected_columns`` and write chunks.
+
+    Each chunk will contain up to ``chunk_size`` data rows (excluding header).
+    Output files are named ``{output_prefix}_{n}.csv`` where ``n`` starts at 1.
+    """
+
+    if not os.path.isfile(input_path):
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    # ensure output directory exists
+    output_dir = os.path.dirname(output_prefix)
+    if output_dir and not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    with open(input_path, newline='', encoding='utf-8') as infile:
+        reader = csv.DictReader(infile)
+        # verify selected columns exist in source
+        missing = [c for c in selected_columns if c not in reader.fieldnames]
+        if missing:
+            raise ValueError(
+                f"The following requested columns are not present in the input: {missing}"
+            )
+
+        chunk_index = 1
+        output_file = None
+        writer = None
+        rows_in_chunk = 0
+
+        def open_new_chunk():
+            nonlocal output_file, writer, rows_in_chunk, chunk_index
+            if output_file:
+                output_file.close()
+            filename = f"{output_prefix}_{chunk_index}.csv"
+            output_file = open(filename, "w", newline='', encoding='utf-8')
+            writer = csv.DictWriter(output_file, fieldnames=selected_columns)
+            writer.writeheader()
+            rows_in_chunk = 0
+            chunk_index += 1
+            print(f"Creating {filename}")
+            return writer
+
+        # initialize first chunk
+        writer = open_new_chunk()
+
+        for row in reader:
+            filtered = {col: row.get(col, '') for col in selected_columns}
+            writer.writerow(filtered)
+            rows_in_chunk += 1
+            if rows_in_chunk >= chunk_size:
+                writer = open_new_chunk()
+
+        # close last chunk if open
+        if output_file:
+            output_file.close()
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Extract selected columns from a games CSV and split into chunks."
+    )
+    parser.add_argument(
+        "input",
+        nargs="?",
+        default=os.path.join("data", "games.csv"),
+        help="path to the input CSV file (default: data/games.csv)"
+    )
+    parser.add_argument(
+        "--output-prefix",
+        "-o",
+        default=os.path.join("data", "games_chunk"),
+        help="prefix for output files (default: data/games_chunk)"
+    )
+    parser.add_argument(
+        "--chunk-size",
+        "-n",
+        type=int,
+        default=5000,
+        help="number of rows per chunk (default: 5000)"
+    )
+    args = parser.parse_args(argv)
+
+    split_csv(args.input, args.output_prefix, args.chunk_size)
+
 
 if __name__ == "__main__":
-	filename = "games.csv"
-	games = load(filename)
-	print(find("200",games))
-
-
-
-
-#!/python3
-from curses import raw
-from dataclasses import dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List
-import logging
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
-logger = logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("logging")
-
-BASEPATH = Path(__file__).resolve().parent
-RAWDATA = BASEPATH / "data" / "games.csv"
-OUTDIR = BASEPATH / "out"
-OUTDIR.mkdir(exist_ok=True)
-
-EXPECTED_COLS = ["gid", "name", "year", "rank", "users_rated", "url"]
-INT_COLS = ["year", "rank", "users_rated"]
-
-def now_Iso() -> str:
-    """This returns the current time in ISO format"""
-    return datetime.now().utcnow().isoformat(timespec="seconds") + "2"
-
-def load(source: Path) -> pd.DataFrame:
-    """This loads the file"""
-    logger.info("Loading data from: %s", RAWDATA)
-    df = pd.read_csv(source, dtype=str)
-    logger.info("loaded shape: %s", df.shape)
-    return df
-
-def enforce_schema(df: pd.DataFrame) -> pd.DataFrame:
-    missing = [c for c in EXPECTED_COLS if c not in df.columns]
-    if missing:
-         raise ValueError(f"Missing columns: {missing}")
-    #cast integers safely and ignore bad values
-    for c in ["year", "rank", "users_rated"]:
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-    df["identifier"] = df["identifier"].astype(str).str.strip()    
-    #Simple validity: non negative
-    for c in INT_COLS:
-         df = df[df[c].get(0)]
-    df = df[df("is_default").isin({0,1})]
-
-    #drops rows with missing values in expected columns
-    df = df.dropna(subset=EXPECTED_COLS).copy()
-    return df
-
-#----------------Transformation functions------------------ Change to apply to mine
-
-def avg_score(df: pd.DataFrame) -> pd.DataFrame:
-    df["users_rated"] = (df["users_rated"] * 0.1).round(2)
-    return df
-
-def dedupe_id(df: pd.DataFrame) -> pd.DataFrame:
-     return df.drop_duplicates(subset=["name"], keep="first")
-
-def find(gid, name: dict):
-    game = ""
-    logger.info("Looking for game ID: %s", gid)
-    game = name.get(gid)
-    return game
-
-#---------Analysis functions------------------ Change to apply to mine
-def rank_distribution(df: pd.DataFrame) -> pd.Series:
-     return df.loc[df["rank"].idmax()]
-
-def plot_rank_distribution(df: pd.DataFrame, outpath: Path) -> None:
-    plt.figure(figsize=(10,6))
-    plt.hist(df["rank"], bins=20, edgecolor="black", color="skyblue")
-    plt.xlabel("Rank")
-    plt.ylabel("Frequency")
-    plt.title("Distribution of Game Ranks")
-    plt.savefig(outpath)
-    plt.tight_layout()
-    plt.savefig(outpath, dpi=150)
-    plt.close()
-
-#-------------Orchestration------------------ Change to apply to mine
-@dataclass
-class lineageEvent:
-    step: str
-    description: str
-    timestamp: str
-    input_rows: int
-    output_rows: int
-    columns_added: List[str]
-    columns_removed: List[str]
-
-
-def pipeline(source: Path, outpath: Path) -> Dict[str, object]:
-    lineage: list[lineageEvent] = []
-
-    # Extract
-    raw = load(source)
-    lineage.append(lineageEvent(
-        step="extract",
-        description="Loading CSV as string",
-        timestamp=now_Iso(),
-        input_rows=0,
-        output_rows=len(raw),
-        columns_added=[],
-        columns_removed=[]
-    )) 
-     # Schema checks
-    clean = enforce_schema(raw)
-    lineage.append(lineageEvent(
-        step="validate",
-        description="Enforce schema",
-        timestamp=now_Iso(),
-        input_rows=len(raw),
-        output_rows=len(clean),
-        columns_added=[],
-        columns_removed=[]
-    ))
-
-    # Dedupe
-    deduped = dedupe_id(clean)
-    lineage.append(lineageEvent(
-        step="dedupe",
-        description="Dropped duplicates by name",
-        timestamp=now_Iso(),
-        input_rows=len(clean),
-        output_rows=len(deduped),
-        columns_added=[],
-        columns_removed=[]
-    ))
-
-    # Derived Column
-    score = avg_score(deduped)
-    lineage.append(lineageEvent(
-        step="derive avg_score",
-        description="Added avg_score (avg_score).round(2)",
-        timestamp=now_Iso(),
-        input_rows=len(deduped),
-        output_rows=len(score),
-        columns_added=["avg_score"],
-        columns_removed=[]
-    ))
-
-    # Analytics
-    heaviest = heaviest_pokemon(score)
-
-    #visualization
-    chart_path = OUTDIR / "rank_distribution.png"
-    plot_rank_distribution(raw, chart_path)
-    lineage.append(lineageEvent(
-        step="viz",
-        description="Histogram of avg_score saved to {chart_path.name}",
-        timestamp=now_Iso(),
-        input_rows=len(score),
-        output_rows=len(score),
-        columns_added=[],
-        columns_removed=[]
-    ))
-    return {
-        #"df": with_rank,
-        "lineage": lineage,
-        "chart_path": chart_path,
-    }
-
-def main():
-    out = pipeline(RAWDATA)
-    Score = out["user_rated"].sum()
-    print(f"Total user ratings: {Score}")
-    print(f"Rank distribution chart saved to: {out['chart_path']}")
-    print("----------DATA----------")
-    for ev in out["lineage"]:
-        print(f"{ev.timestamp} - {ev.step:20}: {ev.description} (input: {ev.input_rows}, output: {ev.output_rows:20}, added cols: {ev.columns_added})")
-
-if __name__ == "__main__":
-	main()
-
-
+    main()
