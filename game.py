@@ -7,6 +7,7 @@ import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import chunk
 
 logger = logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("games_logger")
@@ -16,8 +17,16 @@ RAWDATA = BASEPATH / "data" / "games.csv"
 OUTDIR = BASEPATH / "out"
 OUTDIR.mkdir(exist_ok=True)
 
-EXPECTED_COLS = ["Appid", "Release date", "rank", "Estimated owners", "Price", "User score", "Score rank" "Genres"]
-INT_COLS = ["Appid", "Release date", "rank", "User score", "Estimated owners", "Price", "Score rank"]
+EXPECTED_COLS = [
+    "AppID",
+    "Release date",
+    "Estimated owners",
+    "Price",
+    "User score",
+    "Score rank",
+    "Genres",
+]
+INT_COLS = ["AppID", "Release date", "Score rank", "User score", "Estimated owners", "Price"]
 
 def now_Iso() -> str:
     """This returns the current time in ISO format"""
@@ -35,7 +44,7 @@ def enforce_schema(df: pd.DataFrame) -> pd.DataFrame:
     if missing:
          raise ValueError(f"Missing columns: {missing}")
     #cast integers safely and ignore bad values
-    for c in ["Appid", "year", "rank", "User score"]:
+    for c in ["AppID", "Release date", "Score rank", "User score"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     df["identifier"] = df["identifier"].astype(str).str.strip()    
     #Simple validity: non negative

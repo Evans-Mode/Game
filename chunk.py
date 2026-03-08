@@ -4,7 +4,12 @@ import argparse
 import csv
 import os
 import sys
+import sqlite3
 from typing import List
+
+
+def connect(db_path):
+    return sqlite3.connect(db_path)
 
 
 SELECT_COLUMNS = [
@@ -24,12 +29,8 @@ def split_csv(
     chunk_size: int = 5000,
     selected_columns: List[str] = SELECT_COLUMNS,
 ) -> None:
-    """Read ``input_path`` CSV, filter ``selected_columns`` and write chunks.
-
-    Each chunk will contain up to ``chunk_size`` data rows (excluding header).
-    Output files are named ``{output_prefix}_{n}.csv`` where ``n`` starts at 1.
-    """
-
+    """Read file and verify coulmns, then split into chunks of specified size with selected columns."""
+    csvCounter = 0
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
@@ -74,6 +75,7 @@ def split_csv(
             rows_in_chunk += 1
             if rows_in_chunk >= chunk_size:
                 writer = open_new_chunk()
+                csvCounter += 1
 
         # close last chunk if open
         if output_file:
@@ -88,20 +90,17 @@ def main(argv=None):
         "input",
         nargs="?",
         default=os.path.join("data", "games.csv"),
-        help="path to the input CSV file (default: data/games.csv)"
     )
     parser.add_argument(
         "--output-prefix",
         "-o",
         default=os.path.join("data", "games_chunk"),
-        help="prefix for output files (default: data/games_chunk)"
     )
     parser.add_argument(
         "--chunk-size",
         "-n",
         type=int,
         default=5000,
-        help="number of rows per chunk (default: 5000)"
     )
     args = parser.parse_args(argv)
 
