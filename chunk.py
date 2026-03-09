@@ -14,6 +14,7 @@ def connect(db_path):
 
 SELECT_COLUMNS = [
     "AppID",
+    "Name",
     "Release date",
     "Estimated owners",
     "Price",
