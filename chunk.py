@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-
+from dataclasses import dataclass
+from datetime import datetime
 import argparse
 import csv
 import os
@@ -17,17 +18,30 @@ SELECT_COLUMNS = [
     "Score rank",
     "Genres",
 ]
-
+@dataclass
+class Game:
+    app_id: int
+    name: str
+    release_date: str
+    estimated_owners: str
+    price: float
+    user_score: int
+    score_rank: int
+    genres: str
 def split_csv(
     input_path: str = "data/games.csv",
     output_prefix: str = "games_chunk",
     chunk_size: int = 5000,
     selected_columns: List[str] = SELECT_COLUMNS,
 ) -> int:
-    """Read file and verify coulmns, then split into chunks of specified size with selected columns. Returns chunk count."""
+    """Read file and verify columns, then split into chunks of specified size with selected columns. Returns chunk count."""
     csvCounter = 0
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
+
+    # Always write chunks into the `data/` folder unless an explicit directory is provided.
+    if not os.path.dirname(output_prefix):
+        output_prefix = os.path.join("data", output_prefix)
 
     # ensure output directory exists
     output_dir = os.path.dirname(output_prefix)
@@ -77,29 +91,8 @@ def split_csv(
         
         return csvCounter + 1
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(
-        description="Extract selected columns from a games CSV and split into chunks."
-    )
-    parser.add_argument(
-        "input",
-        nargs="?",
-        default=os.path.join("data", "games.csv"),
-    )
-    parser.add_argument(
-        "--output-prefix",
-        "-o",
-        default=os.path.join("data", "games_chunk"),
-    )
-    parser.add_argument(
-        "--chunk-size",
-        "-n",
-        type=int,
-        default=5000,
-    )
-    args = parser.parse_args(argv)
-
-    split_csv(args.input, args.output_prefix, args.chunk_size)
+def main():
+    split_csv()
 
 
 if __name__ == "__main__":
