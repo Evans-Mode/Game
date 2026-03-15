@@ -7,11 +7,6 @@ import sys
 import sqlite3
 from typing import List
 
-
-def connect(db_path):
-    return sqlite3.connect(db_path)
-
-
 SELECT_COLUMNS = [
     "AppID",
     "Name",
@@ -23,14 +18,13 @@ SELECT_COLUMNS = [
     "Genres",
 ]
 
-
 def split_csv(
     input_path: str = "data/games.csv",
     output_prefix: str = "games_chunk",
     chunk_size: int = 5000,
     selected_columns: List[str] = SELECT_COLUMNS,
-) -> None:
-    """Read file and verify coulmns, then split into chunks of specified size with selected columns."""
+) -> int:
+    """Read file and verify coulmns, then split into chunks of specified size with selected columns. Returns chunk count."""
     csvCounter = 0
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
@@ -77,11 +71,11 @@ def split_csv(
             if rows_in_chunk >= chunk_size:
                 writer = open_new_chunk()
                 csvCounter += 1
-
         # close last chunk if open
         if output_file:
             output_file.close()
-
+        
+        return csvCounter + 1
 
 def main(argv=None):
     parser = argparse.ArgumentParser(

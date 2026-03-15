@@ -8,17 +8,22 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import chunk
+import sqlite3
 
 logger = logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("games_logger")
 
+conn = sqlite3.connect("gamedb.db")
+cursor = conn.cursor()
+
 BASEPATH = Path(__file__).resolve().parent
-RAWDATA = BASEPATH / "data" / "games.csv"
+RAWDATA = cursor.execute("SELECT * FROM games").fetchall()
 OUTDIR = BASEPATH / "out"
 OUTDIR.mkdir(exist_ok=True)
 
 EXPECTED_COLS = [
     "AppID",
+    "Name",
     "Release date",
     "Estimated owners",
     "Price",
@@ -26,16 +31,19 @@ EXPECTED_COLS = [
     "Score rank",
     "Genres",
 ]
-INT_COLS = ["AppID", "Release date", "Score rank", "User score", "Estimated owners", "Price"]
+INT_COLS = ["AppID", "Score rank", "User score", "Score rank", "Price"]
 
 def now_Iso() -> str:
     """This returns the current time in ISO format"""
     return datetime.now().utcnow().isoformat(timespec="seconds") + "2"
 
-def load(source: Path) -> pd.DataFrame:
-    """This loads the file"""
-    logger.info("Loading data from: %s", RAWDATA)
-    df = pd.read_csv(source, dtype=str)
+def load(source) -> pd.DataFrame:
+    """This loads the data"""
+    logger.info("Loading data from database")
+    if isinstance(source, list):
+        df = pd.DataFrame(source, columns=EXPECTED_COLS)
+    else:
+        df = pd.read_csv(source, dtype=str)
     logger.info("loaded shape: %s", df.shape)
     return df
 
@@ -44,7 +52,7 @@ def enforce_schema(df: pd.DataFrame) -> pd.DataFrame:
     if missing:
          raise ValueError(f"Missing columns: {missing}")
     #cast integers safely and ignore bad values
-    for c in ["AppID", "Release date", "Score rank", "User score"]:
+    for c in ["AppID", "Score rank", "User score", "Score rank", "Price"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
     df["identifier"] = df["identifier"].astype(str).str.strip()    
     #Simple validity: non negative
@@ -98,7 +106,7 @@ class lineageEvent:
     columns_removed: List[str]
 
 
-def pipeline(source: Path, outpath: Path) -> Dict[str, object]:
+def pipeline(source, outpath: Path) -> Dict[str, object]:
     lineage: list[lineageEvent] = []
 
     # Extract
