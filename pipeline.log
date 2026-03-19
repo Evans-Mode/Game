@@ -1,0 +1,36 @@
+2026-03-18 05:24:30,798 - INFO - Starting player-to-genre data processing pipeline
+2026-03-18 05:24:30,798 - INFO - Starting data extraction from database gamedb.db
+2026-03-18 05:24:30,892 - INFO - Completed data extraction: loaded 122611 rows in 0.09 seconds
+2026-03-18 05:24:30,892 - INFO - Starting data checks and processing: filling NaN genres, parsing owners, filtering empty genres
+2026-03-18 05:24:31,394 - INFO - Completed data checks: processed 510766 rows in 0.50 seconds
+2026-03-18 05:24:31,394 - INFO - Starting duplicate handling: removing duplicates based on Name and genres_list
+2026-03-18 05:24:31,499 - INFO - Completed duplicate handling: removed 2945 duplicates, 507821 rows remaining in 0.11 seconds
+2026-03-18 05:24:31,500 - INFO - Starting analytics: aggregating estimated owners by genre
+2026-03-18 05:24:31,527 - INFO - Completed analytics: Aggregated 58 genres by total estimated owners in 0.03 seconds
+2026-03-18 05:24:31,527 - INFO - Starting visualization: creating bar chart of genres vs estimated owners
+2026-03-18 05:24:36,477 - INFO - Completed visualization: saved chart to C:\python\vChunk\out\genre_owners.png in 4.95 seconds
+2026-03-18 05:24:36,478 - INFO - Completed entire pipeline in 5.68 seconds
+2026-03-18 05:38:44,691 - INFO - Starting player-to-genre data processing pipeline
+2026-03-18 05:38:44,691 - INFO - Starting data extraction from database gamedb.db
+2026-03-18 05:38:44,789 - INFO - Completed data extraction: loaded 122611 rows in 0.10 seconds
+2026-03-18 05:38:44,789 - INFO - Starting data checks and processing: filling NaN genres, parsing owners, filtering empty genres
+2026-03-18 05:38:45,291 - INFO - Completed data checks: processed 510766 rows in 0.50 seconds
+2026-03-18 05:38:45,292 - INFO - Starting duplicate handling: removing duplicates based on Name and genres_list
+2026-03-18 05:38:45,393 - INFO - Completed duplicate handling: removed 2945 duplicates, 507821 rows remaining in 0.10 seconds
+2026-03-18 05:38:45,393 - INFO - Starting analytics: aggregating estimated owners by genre
+2026-03-18 05:38:45,420 - INFO - Completed analytics: Aggregated 58 genres by total estimated owners in 0.03 seconds
+2026-03-18 05:38:45,420 - INFO - Starting visualization: creating bar chart of genres vs estimated owners
+2026-03-18 05:38:58,343 - INFO - Completed visualization: saved chart to C:\python\vChunk\out\genre_owners.png in 12.92 seconds
+2026-03-18 05:38:58,343 - INFO - Completed entire pipeline in 13.65 seconds
+2026-03-18 05:39:36,023 - INFO - Starting player-to-genre data processing pipeline
+2026-03-18 05:39:36,023 - INFO - Starting data extraction from database gamedb.db
+2026-03-18 05:39:36,115 - INFO - Completed data extraction: loaded 122611 rows in 0.09 seconds
+2026-03-18 05:39:36,116 - INFO - Starting data checks and processing: filling NaN genres, parsing owners, filtering empty genres
+2026-03-18 05:39:36,621 - INFO - Completed data checks: processed 510766 rows in 0.51 seconds
+2026-03-18 05:39:36,621 - INFO - Starting duplicate handling: removing duplicates based on Name and genres_list
+2026-03-18 05:39:36,721 - INFO - Completed duplicate handling: removed 2945 duplicates, 507821 rows remaining in 0.10 seconds
+2026-03-18 05:39:36,721 - INFO - Starting analytics: aggregating estimated owners by genre
+2026-03-18 05:39:36,747 - INFO - Completed analytics: Aggregated 58 genres by total estimated owners in 0.03 seconds
+2026-03-18 05:39:36,747 - INFO - Starting visualization: creating bar chart of genres vs estimated owners
+2026-03-18 05:39:46,609 - INFO - Completed visualization: saved chart to C:\python\vChunk\out\genre_owners.png in 9.86 seconds
+2026-03-18 05:39:46,609 - INFO - Completed entire pipeline in 10.59 seconds
